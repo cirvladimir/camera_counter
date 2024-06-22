@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image</title>
+</head>
+
+<body>
+    <h1>Upload an Image</h1>
+    <input type="file" id="imageUpload" accept="image/*">
+    <button id="submitButton">Submit</button>
+
+    <script>
+        const submitButton = document.getElementById('submitButton');
+        const imageUpload = document.getElementById('imageUpload');
+
+        submitButton.addEventListener('click', () => {
+            const file = imageUpload.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function (event) {
+                    const data = event.target.result;
+                    // Send data (image) to backend using AJAX
+                    fetch('/upload', {
+                        method: 'POST',
+                        body: data
+                    })
+                        .then(response => response.text())
+                        .then(text => {
+
+                        })
+                        .catch(error => console.error(error));
+                };
+
+                reader.readAsDataURL(file);
+            } else {
+                alert("Please select an image file!");
+            }
+        });
+    </script>
+</body>
+
+</html>
