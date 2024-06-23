@@ -31,10 +31,10 @@ def upload():
         # cv2.imwrite("uploaded_image.jpg", image)
         
         # Process the image and get the desired result
-        shift, period = count_sheets(image, rectangle)
+        points = count_sheets(image, rectangle)
 
         # Convert the result to JSON
-        result_json = json.dumps({"shift": shift, "period": period})
+        result_json = json.dumps({"points": points})
 
         # Return the JSON response
         return result_json

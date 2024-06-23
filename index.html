@@ -119,18 +119,20 @@
                             zoomedCtx.drawImage(image, rectangle.x, rectangle.y, rectangle.width, rectangle.height, 0, 0, zoomedCanvas.width, zoomedCanvas.height);
                             document.body.appendChild(zoomedCanvas);
 
-                            for (let pt = data.shift; pt < rectangle.height; pt += data.period) {
+                            let count = 1;
+                            data.points.forEach(pt => {
                                 zoomedCtx.beginPath();
                                 zoomedCtx.moveTo(0, pt * 4);
                                 zoomedCtx.lineTo(zoomedCanvas.width, pt * 4);
                                 zoomedCtx.strokeStyle = 'red';
                                 zoomedCtx.stroke();
-                            }
 
-                            // ctx.drawImage(image, 0, 0);
-                            // ctx.strokeStyle = 'red';
-                            // ctx.lineWidth = 2;
-                            // ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+                                zoomedCtx.font = '16px Arial';
+                                zoomedCtx.fillStyle = 'red';
+                                zoomedCtx.fillText(count, 10, pt * 4);
+
+                                count++;
+                            });
                         };
                         image.src = imageData;
                     })
