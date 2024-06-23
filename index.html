@@ -4,42 +4,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Image</title>
+    <title>Upload Image with Selection</title>
+    <style>
+        #image {
+            max-width: 100%;
+            max-height: 300px;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Upload an Image</h1>
+    <h1>Upload Image with Selection</h1>
     <input type="file" id="imageUpload" accept="image/*">
-    <button id="submitButton">Submit</button>
+    <button id="submitButton" disabled>Count</button>
+    <canvas id="canvas" style="border: 1px solid black;"></canvas>
 
     <script>
         const submitButton = document.getElementById('submitButton');
         const imageUpload = document.getElementById('imageUpload');
+        const canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let startX, startY, endX, endY;
 
-        submitButton.addEventListener('click', () => {
+        submitButton.disabled = true; // Initially disable upload button
+
+        imageUpload.addEventListener('change', () => {
             const file = imageUpload.files[0];
 
             if (file) {
                 const reader = new FileReader();
 
                 reader.onload = function (event) {
-                    const data = event.target.result;
-                    // Send data (image) to backend using AJAX
-                    fetch('/upload', {
-                        method: 'POST',
-                        body: data
-                    })
-                        .then(response => response.text())
-                        .then(text => {
-
-                        })
-                        .catch(error => console.error(error));
+                    const imageData = event.target.result;
+                    const image = new Image();
+                    image.onload = function () {
+                        canvas.width = image.width;
+                        canvas.height = image.height;
+                        ctx.drawImage(image, 0, 0);
+                        submitButton.disabled = false; // Enable upload on image load
+                    };
+                    image.src = imageData;
                 };
 
                 reader.readAsDataURL(file);
-            } else {
-                alert("Please select an image file!");
             }
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            startX = e.offsetX;
+            startY = e.offsetY;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+            submitButton.disabled = false; // Re-enable upload on rectangle selection
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                endX = e.offsetX;
+                endY = e.offsetY;
+                const image = document.getElementById('imageUpload').files[0];
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const imageData = event.target.result;
+                    const image = new Image();
+                    image.onload = function () {
+                        ctx.drawImage(image, 0, 0);
+                        ctx.strokeStyle = 'red';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+                    };
+                    image.src = imageData;
+                };
+                reader.readAsDataURL(image);
+            }
+        });
+
+        submitButton.addEventListener('click', () => {
+            const imageData = imageUpload.files[0];
+            const rectangle = {
+                x: startX,
+                y: startY,
+                width: endX - startX,
+                height: endY - startY
+            };
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const imageData = event.target.result;
+                const base64String = imageData.split(',')[1];
+                fetch('/upload', {
+                    method: 'POST',
+                    body: JSON.stringify({ image: base64String, rectangle }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => response.text())
+                    .then(text => {
+                        console.log(text);
+                        const data = JSON.parse(text);
+
+                        const image = new Image();
+                        image.onload = function () {
+                            const zoomedCanvas = document.createElement('canvas');
+                            zoomedCanvas.width = rectangle.width * 4;
+                            zoomedCanvas.height = rectangle.height * 4;
+                            const zoomedCtx = zoomedCanvas.getContext('2d');
+                            zoomedCtx.drawImage(image, rectangle.x, rectangle.y, rectangle.width, rectangle.height, 0, 0, zoomedCanvas.width, zoomedCanvas.height);
+                            document.body.appendChild(zoomedCanvas);
+
+                            for (let pt = data.shift; pt < rectangle.height; pt += data.period) {
+                                zoomedCtx.beginPath();
+                                zoomedCtx.moveTo(0, pt * 4);
+                                zoomedCtx.lineTo(zoomedCanvas.width, pt * 4);
+                                zoomedCtx.strokeStyle = 'red';
+                                zoomedCtx.stroke();
+                            }
+
+                            // ctx.drawImage(image, 0, 0);
+                            // ctx.strokeStyle = 'red';
+                            // ctx.lineWidth = 2;
+                            // ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+                        };
+                        image.src = imageData;
+                    })
+                    .catch(error => console.error(error));
+
+            };
+            reader.readAsDataURL(imageData);
         });
     </script>
 </body>
