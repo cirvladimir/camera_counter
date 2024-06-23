@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS dev
 
 SHELL ["/bin/bash", "-c"]
 
@@ -15,3 +15,9 @@ pip3 install numpy opencv-python flask scipy
 
 rm -rf /var/lib/apt/lists/*
 EOF
+
+FROM dev
+
+WORKDIR /app
+
+COPY . .
