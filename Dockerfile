@@ -16,6 +16,11 @@ pip3 install numpy opencv-python flask scipy
 rm -rf /var/lib/apt/lists/*
 EOF
 
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  && echo "$SNIPPET" >> "/root/.bashrc"
+
+RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/' /root/.bashrc
+
 FROM dev
 
 WORKDIR /app

@@ -16,5 +16,8 @@
 	},
 	"forwardPorts": [
 		3000
+	],
+	"mounts": [
+		"source=camera-counter-bash-history,target=/commandhistory,type=volume"
 	]
 }
