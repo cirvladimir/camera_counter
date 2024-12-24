@@ -7,12 +7,6 @@ from counter import count_sheets
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET"])
-def index():
-    # Serve the HTML page
-    with open("index.html", "rb") as f:
-        return f.read()
-
 @app.route("/upload", methods=["POST"])
 def upload():
     # Receive image data from request
@@ -42,6 +36,10 @@ def upload():
     except Exception as e:
         print(f"Error processing image: {e}")
         return "Error uploading image!", 500
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return app.send_static_file(filename)
 
 if __name__ == "__main__":
     app.run(debug=True, port=3000, host="0.0.0.0")
