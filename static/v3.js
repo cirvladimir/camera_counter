@@ -147,6 +147,9 @@ class ImageViewer {
       this.selectedRect = null;
       this.draw();
     });
+    document.getElementById('processSelection').addEventListener('click', () => {
+      this.processSelection();
+    });
 
     // Draw initial state
     this.draw();
@@ -264,6 +267,72 @@ class ImageViewer {
     }
   }
 
+  processSelection() {
+    if (this.selectedRect == null) {
+      return;
+    }
+
+    const rect = new cv.Rect(this.selectedRect.x, this.selectedRect.y, this.selectedRect.width, this.selectedRect.height);
+    const cropped = this.mat.roi(rect);
+
+    let gray = new cv.Mat();
+    cv.cvtColor(cropped, gray, cv.COLOR_RGBA2GRAY);
+
+    // Threshold
+    let binary = new cv.Mat();
+    cv.threshold(gray, binary, 100, 255, cv.THRESH_BINARY);
+
+    // Median blur
+    let blurred = new cv.Mat();
+    cv.medianBlur(binary, blurred, 5);
+
+    // Find first black pixel indices
+    let firstBlackPixelIndices = [];
+    for (let y = 0; y < blurred.rows; y++) {
+      let row = blurred.row(y);
+      let data = row.data;
+      let foundBlack = false;
+      for (let x = data.length - 1; x >= 0; x--) {
+        if (data[x] !== 0) {
+          firstBlackPixelIndices.push(data.length - x);
+          foundBlack = true;
+          break;
+        }
+      }
+      if (!foundBlack) firstBlackPixelIndices.push(0);
+    }
+
+    // Compute derivative
+    let derivative = [];
+    for (let i = 1; i < firstBlackPixelIndices.length; i++) {
+      derivative.push(Math.abs(firstBlackPixelIndices[i] - firstBlackPixelIndices[i - 1]));
+    }
+
+    // Smooth derivative
+    let smoothed = [];
+    let kernelSize = 5;
+    for (let i = 0; i < derivative.length - kernelSize + 1; i++) {
+      let sum = 0;
+      for (let j = 0; j < kernelSize; j++) {
+        sum += derivative[i + j];
+      }
+      smoothed.push(sum / kernelSize);
+    }
+
+    const peaks = findPeaks(smoothed, 10);
+
+    // Draw lines at detected peaks (example)
+    let colorImage = this.mat.clone();
+    // Assuming `peaks` contains y-coordinates of peaks
+    peaks.forEach(peak => {
+      cv.line(colorImage, new cv.Point(this.selectedRect.x, this.selectedRect.y + peak), new cv.Point(this.selectedRect.x + this.selectedRect.width,
+        this.selectedRect.y + peak), [0, 0, 255, 255], 2);
+    });
+
+    // Display the result
+    cv.imshow(this.canvas, colorImage);
+  }
+
   draw() {
     // Clear canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -301,3 +370,33 @@ class ImageViewer {
     this.draw();
   }
 }
+
+function findPeaks(data, distance) {
+  const peaks = [];
+  for (let i = 0; i < data.length; i++) {
+    let isPeak = true;
+
+    // Check the left neighbors
+    for (let j = 1; j <= distance; j++) {
+      if (i - j >= 0 && data[i] <= data[i - j]) {
+        isPeak = false;
+        break;
+      }
+    }
+
+    // Check the right neighbors
+    for (let j = 1; j <= distance; j++) {
+      if (i + j < data.length && data[i] <= data[i + j]) {
+        isPeak = false;
+        break;
+      }
+    }
+
+    if (isPeak) {
+      peaks.push(i);
+    }
+  }
+  return peaks;
+}
+
+
