@@ -33,7 +33,7 @@ window.onload = function () {
       console.log(src.size());
 
       video.style.display = 'none';
-      canvas.style.display = 'block';
+      document.getElementById('canvasContainer').style.display = 'block';
       document.getElementById('capture').style.display = 'none';
       document.getElementById('initialControlContainer').style.display = 'none';
       document.getElementById('fileInput').style.display = 'none';
@@ -71,7 +71,7 @@ window.onload = function () {
         video.play();
       };
 
-      startButton.style.display = 'none';
+      document.getElementById('initialControlContainer').style.display = 'none';
       captureButton.disabled = false;
     } catch (err) {
       console.error('Error accessing camera:', err);
@@ -93,7 +93,7 @@ function capture() {
   console.log(src.size());
 
   video.style.display = 'none';
-  canvas.style.display = 'block';
+  document.getElementById('canvasContainer').style.display = 'block';
   document.getElementById('capture').style.display = 'none';
 
   const imageViewer = new ImageViewer(src, canvas);
@@ -108,6 +108,8 @@ class ImageViewer {
     this.y = 0;
     this.elementZoom = this.canvas.clientWidth / this.canvas.width;
     this.zoom = this.elementZoom * document.body.clientWidth / this.canvas.width;
+
+    this.selectedRect = null;
 
     // Convert Mat to Image once
     const tempCanvas = document.createElement('canvas');
@@ -138,6 +140,13 @@ class ImageViewer {
     this.canvas.addEventListener('touchstart', this.handleTouchStart);
     this.canvas.addEventListener('touchmove', this.handleTouchMove);
     this.canvas.addEventListener('touchend', this.handleTouchEnd);
+
+    // Add reset button handler
+    const resetButton = document.getElementById('resetSelection');
+    resetButton.addEventListener('click', () => {
+      this.selectedRect = null;
+      this.draw();
+    });
 
     // Draw initial state
     this.draw();
@@ -183,8 +192,12 @@ class ImageViewer {
     event.preventDefault();
 
     if (event.touches.length === 2) {
+      // Existing two-finger touch handling
       this.touchCenter = this.getTouchCenter(event);
       this.lastTouchDistance = this.getTouchDistance(event);
+    } else if (event.touches.length === 1) {
+      this.touchCenter = this.screenToImage(event.touches[0].clientX, event.touches[0].clientY);
+      this.lastTouchDistance = null;
     } else {
       this.touchCenter = null;
       this.lastTouchDistance = null;
@@ -208,6 +221,38 @@ class ImageViewer {
 
       this.draw();
 
+    } else if (event.touches.length === 1) {
+      const touchCenter = this.screenToImage(event.touches[0].clientX, event.touches[0].clientY);
+      if (Math.abs(this.touchCenter.y - touchCenter.y) > 50) {
+        if (this.selectedRect == null) {
+          this.selectedRect = {
+            x: Math.min(this.touchCenter.x, touchCenter.x),
+            y: Math.min(this.touchCenter.y, touchCenter.y),
+            width: Math.abs(touchCenter.x - this.touchCenter.x),
+            height: Math.abs(touchCenter.y - this.touchCenter.y)
+          };
+        } else {
+          // Extend selected rect to contain new touch point
+          const newX = Math.min(this.selectedRect.x, touchCenter.x);
+          const newY = Math.min(this.selectedRect.y, touchCenter.y);
+          const newWidth = Math.max(
+            this.selectedRect.x + this.selectedRect.width,
+            touchCenter.x
+          ) - newX;
+          const newHeight = Math.max(
+            this.selectedRect.y + this.selectedRect.height,
+            touchCenter.y
+          ) - newY;
+
+          this.selectedRect = {
+            x: newX,
+            y: newY,
+            width: newWidth,
+            height: newHeight
+          };
+        }
+        this.draw();
+      }
     }
   }
 
@@ -232,6 +277,14 @@ class ImageViewer {
 
     // Draw the pre-converted image
     this.ctx.drawImage(this.image, 0, 0);
+
+    if (this.selectedRect) {
+      this.ctx.strokeStyle = 'red';
+      this.ctx.lineWidth = 2;
+      this.ctx.strokeRect(this.selectedRect.x, this.selectedRect.y, this.selectedRect.width, this.selectedRect.height);
+      this.ctx.fillStyle = 'rgba(255, 255, 0, 0.2)';
+      this.ctx.fillRect(this.selectedRect.x, this.selectedRect.y, this.selectedRect.width, this.selectedRect.height);
+    }
 
     // Restore original transform state
     this.ctx.restore();
