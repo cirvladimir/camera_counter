@@ -41,23 +41,33 @@
       z-index: 1000;
     }
 
-    #startCamera {
+    .button-container {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    #startCamera,
+    #upload {
       padding: 15px 30px;
       font-size: 18px;
-      z-index: 1000;
     }
   </style>
 </head>
 
 <body>
-  <button id="startCamera">Start Camera</button>
+  <div id="initialControlContainer" class="button-container">
+    <button id="startCamera">Start Camera</button>
+    <button id="upload">Upload Image</button>
+  </div>
   <button id="capture">Capture</button>
   <video id="camera"></video>
   <canvas id="output" style="display: none;"></canvas>
+  <input type="file" id="fileInput" accept="image/*" style="display: none;">
 </body>
 
 </html>

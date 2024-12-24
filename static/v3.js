@@ -4,8 +4,45 @@ window.onload = function () {
   const ctx = canvas.getContext('2d');
   const startButton = document.getElementById('startCamera');
   const captureButton = document.getElementById('capture');
+  const fileInput = document.getElementById('fileInput');
+  const uploadButton = document.getElementById('upload');
 
   captureButton.disabled = true;
+
+  // Add file upload handler
+  uploadButton.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', handleFileUpload);
+
+  async function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const img = new Image();
+    img.onload = () => {
+      // Set canvas dimensions to match image
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.style.width = canvas.width + "px";
+      canvas.style.height = canvas.height + "px";
+
+      // Draw image to canvas
+      ctx.drawImage(img, 0, 0);
+
+      // Convert to OpenCV Mat and initialize viewer
+      let src = cv.imread(canvas);
+      console.log(src.size());
+
+      video.style.display = 'none';
+      canvas.style.display = 'block';
+      document.getElementById('capture').style.display = 'none';
+      document.getElementById('initialControlContainer').style.display = 'none';
+      document.getElementById('fileInput').style.display = 'none';
+
+      const imageViewer = new ImageViewer(src, canvas);
+    };
+
+    img.src = URL.createObjectURL(file);
+  }
 
   async function startCamera() {
     try {
